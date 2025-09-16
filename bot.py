@@ -1,6 +1,7 @@
 import os
 import time
 import random
+import re
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -8,7 +9,6 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException
-import re
 from dotenv import load_dotenv
 
 # ===== ЗАГРУЗКА .env =====
@@ -19,6 +19,7 @@ PASSWORD = os.getenv("PASSWORD")
 MESSAGE = "Здравствуйте! Я готов помочь вам с занятиями."
 CHECK_INTERVAL = 60  # секунд между проверками
 PROCESSED_REQUESTS_FILE = "processed_requests.txt"
+SPEED_FACTOR = 2
 
 # ===== МАССИВ ПРЕДМЕТОВ ДЛЯ ПОИСКА =====
 SUBJECTS_TO_SEARCH = [
@@ -87,23 +88,23 @@ def safe_get(driver, url, max_retries=3):
             )
             
             # Добавляем случайную задержку для имитации человеческого поведения
-            time.sleep(random.uniform(2, 4))
+            time.sleep(random.uniform(2 / SPEED_FACTOR, 4 / SPEED_FACTOR))
             return True
             
         except TimeoutException:
             print(f"Таймаут при загрузке страницы (попытка {attempt + 1})")
             if attempt < max_retries - 1:
-                time.sleep(5)
+                time.sleep(5 / SPEED_FACTOR)
                 continue
         except WebDriverException as e:
             print(f"Ошибка WebDriver при загрузке: {e}")
             if attempt < max_retries - 1:
-                time.sleep(5)
+                time.sleep(5 / SPEED_FACTOR)
                 continue
         except Exception as e:
             print(f"Неожиданная ошибка при загрузке: {e}")
             if attempt < max_retries - 1:
-                time.sleep(5)
+                time.sleep(5 / SPEED_FACTOR)
                 continue
     
     print("Не удалось загрузить страницу после всех попыток")
@@ -138,7 +139,7 @@ def login(driver):
                 EC.element_to_be_clickable((By.XPATH, "//div[contains(text(),'Воити с логином и паролем')]"))
             )
             login_div.click()
-            time.sleep(1)
+            time.sleep(1  / SPEED_FACTOR)
         except TimeoutException:
             print("Не найден элемент 'Войти с логином и паролем'")
             return False
@@ -150,7 +151,7 @@ def login(driver):
             )
             login_input.clear()
             login_input.send_keys(LOGIN)
-            time.sleep(0.5)
+            time.sleep(1 / SPEED_FACTOR)
         except TimeoutException:
             print("Не найдено поле логина")
             return False
@@ -162,7 +163,7 @@ def login(driver):
             )
             password_input.clear()
             password_input.send_keys(PASSWORD)
-            time.sleep(0.5)
+            time.sleep(1 / SPEED_FACTOR)
         except NoSuchElementException:
             print("Не найдено поле пароля")
             return False
@@ -178,7 +179,7 @@ def login(driver):
             return False
         
         # Ждем успешной авторизации
-        time.sleep(2.5)
+        time.sleep(5 / SPEED_FACTOR)
         
         # Проверяем, что авторизация прошла успешно
         current_url = driver.current_url
@@ -362,11 +363,11 @@ def process_single_request(driver, processed):
             try:
                 # Скроллим к карточке
                 driver.execute_script("arguments[0].scrollIntoView(true);", request_card)
-                time.sleep(random.uniform(0.5, 1))
+                time.sleep(random.uniform(0.5  / SPEED_FACTOR, 1 / SPEED_FACTOR))
                 
                 # Кликаем на карточку
                 driver.execute_script("arguments[0].click();", request_card)
-                time.sleep(random.uniform(1, 2))
+                time.sleep(random.uniform(1 / SPEED_FACTOR, 2 / SPEED_FACTOR))
                 
                 # Ищем div "Начать чат с клиентом"
                 chat_div = find_chat_button(driver)
@@ -374,7 +375,7 @@ def process_single_request(driver, processed):
                 if chat_div:
                     print("Найден элемент 'Начать чат с клиентом'")
                     driver.execute_script("arguments[0].click();", chat_div)
-                    time.sleep(random.uniform(1, 2))
+                    time.sleep(random.uniform(1 / SPEED_FACTOR, 2 / SPEED_FACTOR))
                     
                     # Проверяем, было ли уже отправлено сообщение
                     already_sent = check_if_message_sent(driver, MESSAGE)
@@ -407,7 +408,7 @@ def process_single_request(driver, processed):
                                 # Вводим текст по символам для имитации человека
                                 for char in MESSAGE:
                                     input_field.send_keys(char)
-                                    time.sleep(random.uniform(0.025, 0.5))
+                                    time.sleep(random.uniform(0.25 / SPEED_FACTOR, 0.5 / SPEED_FACTOR))
                                 
                                 time.sleep(1)
                                 # Отправляем сообщение (закомментировано для безопасности)
@@ -477,7 +478,7 @@ def check_requests(driver):
             else:
                 print(f"Ошибка при обработке заявки {req_id}")
                 # При ошибке тоже делаем паузу
-                time.sleep(5)
+                time.sleep(5 / SPEED_FACTOR)
         
         if processed_in_session > 0:
             print(f"Сессия завершена. Обработано заявок: {processed_in_session}")
@@ -551,7 +552,7 @@ def main():
                     time.sleep(300)  # 5 минут
                     consecutive_failures = 0
                 else:
-                    time.sleep(10)
+                    time.sleep(10 / SPEED_FACTOR)
                 
         except KeyboardInterrupt:
             print("Получен сигнал остановки...")
