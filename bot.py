@@ -18,11 +18,11 @@ load_dotenv()
 LOGIN = os.getenv("LOGIN")
 PASSWORD = os.getenv("PASSWORD")
 MESSAGE = "Добрый день, готов помочь вам. Первое занятие проведу со скидкой 50%. Имею большой опыт работы, отзывы можно посмотреть в том числе и здесь"
-CHECK_INTERVAL = 60  # секунд между проверками
+CHECK_INTERVAL = 60 
 DB_FILE = "processed_requests.db"
 SPEED_FACTOR = 2
 TYPING_SPEED_FACTOR = 8
-CAN_SEND_MESSAGE = False
+CAN_SEND_MESSAGE = True
 
 # ===== МАССИВ ПРЕДМЕТОВ ДЛЯ ПОИСКА =====
 SUBJECTS_TO_SEARCH = [
