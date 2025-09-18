@@ -10,6 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException
 from dotenv import load_dotenv
+import sqlite3
 
 # ===== ЗАГРУЗКА .env =====
 load_dotenv()
@@ -18,10 +19,10 @@ LOGIN = os.getenv("LOGIN")
 PASSWORD = os.getenv("PASSWORD")
 MESSAGE = "Добрый день, готов помочь вам. Первое занятие проведу со скидкой 50%. Имею большой опыт работы, отзывы можно посмотреть в том числе и здесь"
 CHECK_INTERVAL = 60  # секунд между проверками
-PROCESSED_REQUESTS_FILE = "processed_requests.txt"
+DB_FILE = "processed_requests.db"
 SPEED_FACTOR = 2
 TYPING_SPEED_FACTOR = 8
-CAN_SEND_MESSAGE = True
+CAN_SEND_MESSAGE = False
 
 # ===== МАССИВ ПРЕДМЕТОВ ДЛЯ ПОИСКА =====
 SUBJECTS_TO_SEARCH = [
@@ -29,15 +30,33 @@ SUBJECTS_TO_SEARCH = [
     "Обществознание",
 ]
 
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS processed_requests (
+            id TEXT PRIMARY KEY
+        )
+    """)
+    conn.commit()
+    conn.close()
+
 def load_processed_requests():
-    if not os.path.exists(PROCESSED_REQUESTS_FILE):
-        return set()
-    with open(PROCESSED_REQUESTS_FILE, "r", encoding="utf-8") as f:
-        return set(line.strip() for line in f if line.strip())
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM processed_requests")
+    rows = cur.fetchall()
+    conn.close()
+    return set(r[0] for r in rows)
 
 def save_processed_request(req_id: str):
-    with open(PROCESSED_REQUESTS_FILE, "a", encoding="utf-8") as f:
-        f.write(req_id + "\n")
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    try:
+        cur.execute("INSERT OR IGNORE INTO processed_requests (id) VALUES (?)", (req_id,))
+        conn.commit()
+    finally:
+        conn.close()
 
 def extract_request_id(card_element):
     """Ищем номер заявки внутри карточки"""
@@ -546,6 +565,8 @@ def check_requests(driver):
 def main():
     """Основная функция с улучшенным управлением драйвером"""
     print(f"Запуск скрипта для поиска заявок по предметам: {', '.join(SUBJECTS_TO_SEARCH)}")
+    
+    init_db()
     
     driver = None
     consecutive_failures = 0
