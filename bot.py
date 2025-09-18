@@ -16,10 +16,12 @@ load_dotenv()
 
 LOGIN = os.getenv("LOGIN")
 PASSWORD = os.getenv("PASSWORD")
-MESSAGE = "Здравствуйте! Я готов помочь вам с занятиями."
+MESSAGE = "Добрый день, готов помочь вам. Первое занятие проведу со скидкой 50%. Имею большой опыт работы, отзывы можно посмотреть в том числе и здесь"
 CHECK_INTERVAL = 60  # секунд между проверками
 PROCESSED_REQUESTS_FILE = "processed_requests.txt"
 SPEED_FACTOR = 2
+TYPING_SPEED_FACTOR = 8
+CAN_SEND_MESSAGE = True
 
 # ===== МАССИВ ПРЕДМЕТОВ ДЛЯ ПОИСКА =====
 SUBJECTS_TO_SEARCH = [
@@ -321,16 +323,61 @@ def find_chat_button(driver):
     return None
 
 def check_if_message_sent(driver, message_text):
+    """
+    Простая и надежная проверка - есть ли сообщения в чате
+    Если есть блок "Начните общение с клиентом" - значит чат пустой
+    """
     try:
-        messages = driver.find_elements(
-            By.CSS_SELECTOR, "div.css-146c3p1[dir='auto']"
-        )
-        for msg in messages:
-            if message_text.strip() in msg.text.strip():
-                return True
-        return False
+        # Даем время для загрузки чата
+        time.sleep(2)
+        
+        # Ищем блок "Начните общение с клиентом"
+        try:
+            empty_chat_element = driver.find_element(
+                By.XPATH, 
+                "//*[contains(text(), 'Начните общение с клиентом')]"
+            )
+            
+            if empty_chat_element:
+                print("Чат пустой - найден блок 'Начните общение с клиентом'")
+                return False  # Сообщения НЕ было отправлено
+                
+        except NoSuchElementException:
+            # Если блока нет, значит в чате есть сообщения
+            print("Блок 'Начните общение с клиентом' не найден - в чате есть сообщения")
+            return True  # Сообщение УЖЕ было отправлено
+            
+        except Exception as e:
+            print(f"Ошибка поиска блока пустого чата: {e}")
+            
+            # Если не можем найти блок пустого чата, используем запасной способ
+            # Ищем любые сообщения в чате
+            try:
+                messages = driver.find_elements(By.CSS_SELECTOR, "div.css-146c3p1[dir='auto']")
+                # Фильтруем служебные сообщения (время, даты и т.д.)
+                actual_messages = []
+                for msg in messages:
+                    text = msg.text.strip()
+                    # Игнорируем короткие сообщения (время), служебные тексты
+                    if (len(text) > 5 and 
+                        'Начните общение' not in text and
+                        not re.match(r'^\d{1,2}:\d{2}$', text) and  # время типа 17:24
+                        not re.match(r'^.{1,3},\s\d{1,2}\s\w+$', text)):  # дата типа "сб, 13 сентября"
+                        actual_messages.append(text)
+                
+                if actual_messages:
+                    print(f"В чате найдено {len(actual_messages)} сообщений")
+                    return True  # Есть сообщения
+                else:
+                    print("В чате нет сообщений")
+                    return False  # Нет сообщений
+                    
+            except Exception as e2:
+                print(f"Ошибка запасного способа: {e2}")
+                return False  # В случае ошибки считаем, что сообщения нет
+        
     except Exception as e:
-        print(f"Ошибка при проверке сообщений: {e}")
+        print(f"Общая ошибка при проверке чата: {e}")
         return False
 
 def process_single_request(driver, processed):
@@ -408,12 +455,17 @@ def process_single_request(driver, processed):
                                 # Вводим текст по символам для имитации человека
                                 for char in MESSAGE:
                                     input_field.send_keys(char)
-                                    time.sleep(random.uniform(0.25 / SPEED_FACTOR, 0.5 / SPEED_FACTOR))
+                                    time.sleep(random.uniform(0.25 / TYPING_SPEED_FACTOR, 0.5 / TYPING_SPEED_FACTOR))
                                 
                                 time.sleep(1)
-                                # Отправляем сообщение (закомментировано для безопасности)
-                                # input_field.send_keys(Keys.ENTER)
-                                print("Сообщение готово к отправке (отправка отключена).")
+                                # Отправляем сообщение
+                                if CAN_SEND_MESSAGE:
+                                    input_field.send_keys(Keys.ENTER)
+                                    print("Сообщение отправлено.")
+                                    
+                                else:
+                                    print("Отправка сообщений отключена.")
+                                    
                             else:
                                 print("Поле для ввода сообщения не найдено.")
                                 
