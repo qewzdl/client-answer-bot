@@ -21,8 +21,8 @@ PASSWORD = os.getenv("PASSWORD")
 MESSAGE = "Добрый день, готов помочь вам. Первое занятие проведу со скидкой 50%. Имею большой опыт работы, отзывы можно посмотреть в том числе и здесь"
 CHECK_INTERVAL = 60 
 DB_FILE = "processed_requests.db"
-SPEED_FACTOR = 2
-TYPING_SPEED_FACTOR = 8
+SPEED_FACTOR = 1
+TYPING_SPEED_FACTOR = 4
 CAN_SEND_MESSAGE = True
 
 # ===== МАССИВ ПРЕДМЕТОВ ДЛЯ ПОИСКА =====
@@ -71,7 +71,6 @@ def init_driver():
     
     # Улучшенные опции для стабильности
     chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--disable-extensions")
@@ -149,24 +148,13 @@ def check_driver_health(driver):
         return False
 
 def login(driver):
-    """Функция авторизации с улучшенной обработкой ошибок"""
+    """Функция авторизации напрямую через loginwithpassword"""
     try:
-        if not safe_get(driver, "https://repetit.ru/lk/loginwithshortcode"):
+        if not safe_get(driver, "https://repetit.ru/lk/loginwithpassword"):
             return False
-            
+
         wait = WebDriverWait(driver, 15)
-        
-        # Ищем div с текстом "Войти с логином и паролем"
-        try:
-            login_div = wait.until(
-                EC.element_to_be_clickable((By.XPATH, "//div[contains(text(),'Воити с логином и паролем')]"))
-            )
-            login_div.click()
-            time.sleep(1  / SPEED_FACTOR)
-        except TimeoutException:
-            print("Не найден элемент 'Войти с логином и паролем'")
-            return False
-        
+
         # Поле "логин"
         try:
             login_input = wait.until(
@@ -178,7 +166,7 @@ def login(driver):
         except TimeoutException:
             print("Не найдено поле логина")
             return False
-        
+
         # Поле "пароль"
         try:
             password_input = driver.find_element(
@@ -190,7 +178,7 @@ def login(driver):
         except NoSuchElementException:
             print("Не найдено поле пароля")
             return False
-        
+
         # Кнопка входа
         try:
             login_btn = wait.until(
@@ -200,19 +188,16 @@ def login(driver):
         except TimeoutException:
             print("Не найдена кнопка входа")
             return False
-        
-        # Ждем успешной авторизации
+
         time.sleep(5 / SPEED_FACTOR)
-        
-        # Проверяем, что авторизация прошла успешно
-        current_url = driver.current_url
-        if "loginwithshortcode" not in current_url:
+
+        if "loginwithpassword" not in driver.current_url:
             print("Авторизация выполнена успешно.")
             return True
         else:
             print("Авторизация не удалась - остались на странице входа")
             return False
-        
+
     except Exception as e:
         print(f"Ошибка авторизации: {e}")
         return False
