@@ -12,13 +12,14 @@ from selenium.common.exceptions import WebDriverException, TimeoutException, NoS
 from selenium.webdriver.chrome.options import Options
 from dotenv import load_dotenv
 import sqlite3
+import sys
 
 # ===== ЗАГРУЗКА .env =====
 load_dotenv()
 
 LOGIN = os.getenv("LOGIN")
 PASSWORD = os.getenv("PASSWORD")
-MESSAGE = "Здравствуйте! Качественно и компетентно помогу справиться с вашей задачей. Первое занятие 60 минут со скидкой 50%, при записи до конца дня. Обо мне: образование МГУ, опыт работы более 15 лет с более чем 1000 учениками: индивидуально, на курсах, в школе, работа в качестве эксперта. Работаю на результат, при этом стремлюсь объяснить материал понятно и просто, что позволяет изменить отношение к предмету к лучшему. Провожу занятия через платформу Zoom, используя все доступные современные технологии. По запросу предоставляю записи занятий. Есть сотни положительных отзывов о моей работе, часть из них можно посмотреть на этой платформе"
+MESSAGE = "Добрый день, готов помочь вам. Первое занятие проведу со скидкой 50%. Имею большой опыт работы, отзывы можно посмотреть в том числе и здесь"
 CHECK_INTERVAL = 60 
 DB_FILE = "processed_requests.db"
 SPEED_FACTOR = 1
@@ -30,6 +31,9 @@ SUBJECTS_TO_SEARCH = [
     "Математика",
     "Обществознание",
 ]
+
+if len(sys.argv) > 1:
+    MESSAGE = " ".join(sys.argv[1:])
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
